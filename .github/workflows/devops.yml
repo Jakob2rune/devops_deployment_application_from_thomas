@@ -3,12 +3,11 @@ name: DevOps Pipeline
 on:
   push:
     branches:
-      - master
+      - main
 
-# Grant the GITHUB_TOKEN necessary permissions
 permissions:
-  contents: write      # for creating releases
-  packages: write      # for pushing to GHCR
+  contents: write
+  packages: write
 
 jobs:
   delivery:
@@ -23,6 +22,12 @@ jobs:
         with:
           bump_each_commit: true
 
+      # NEW: Convert repository name to lowercase (required for Docker)
+      - name: Convert repository name to lowercase
+        id: repo_lower
+        run: |
+          echo "repo_lower=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@v2
         with:
@@ -33,10 +38,10 @@ jobs:
       - name: Build and Push Docker image
         run: |
           docker build \
-            -t ghcr.io/${{ lower(github.repository) }}:staging \
-            -t ghcr.io/${{ lower(github.repository) }}:${{ steps.semver-app.outputs.version }} \
+            -t ghcr.io/${{ steps.repo_lower.outputs.repo_lower }}:staging \
+            -t ghcr.io/${{ steps.repo_lower.outputs.repo_lower }}:${{ steps.semver-app.outputs.version }} \
             -f DevOpsWebApplication/Dockerfile .
-          docker push ghcr.io/${{ lower(github.repository) }} --all-tags
+          docker push ghcr.io/${{ steps.repo_lower.outputs.repo_lower }} --all-tags
 
       - name: Create release notes
         uses: ncipollo/release-action@v1
@@ -45,17 +50,16 @@ jobs:
           generateReleaseNotes: true
           body: |
             This release includes the following container image:
-            https://ghcr.io/${{ github.repository }}:${{ steps.semver-app.outputs.version }}
+            https://ghcr.io/${{ steps.repo_lower.outputs.repo_lower }}:${{ steps.semver-app.outputs.version }}
 
-    
-      #Deploy to staging server using Docker Compose =====
+      # ===== Deploy to staging server using Docker Compose =====
       - name: Deliver Docker Compose file to staging
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ vars.STAGING_SERVER_IP }}
           username: ${{ vars.STAGING_SERVER_USERNAME }}
           key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
-          source: "compose.yaml"
+          source: "docker-compose.yaml"
           target: dowa/
 
       - name: Run Docker Compose on staging server
