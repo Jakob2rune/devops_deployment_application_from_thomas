@@ -42,16 +42,7 @@ jobs:
             -t ghcr.io/${{ steps.repo_lower.outputs.repo_lower }}:${{ steps.semver-app.outputs.version }} \
             -f DevOpsWebApplication/Dockerfile .
           docker push ghcr.io/${{ steps.repo_lower.outputs.repo_lower }} --all-tags
-
-      - name: Create release notes
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ steps.semver-app.outputs.version }}
-          generateReleaseNotes: true
-          body: |
-            This release includes the following container image:
-            https://ghcr.io/${{ steps.repo_lower.outputs.repo_lower }}:${{ steps.semver-app.outputs.version }}
-
+          
       # ===== Deploy to staging server using Docker Compose =====
       - name: Deliver Docker Compose file to staging
         uses: appleboy/scp-action@v0.1.7
