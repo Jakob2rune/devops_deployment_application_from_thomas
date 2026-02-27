@@ -3,18 +3,46 @@ name: DevOps Pipeline
 on:
   push:
     branches:
-      - main
+      - master
+
+# Set permissions for the GITHUB_TOKEN to allow pushing to GHCR and creating releases
+permissions:
+  contents: write      # needed for creating releases
+  packages: write      # needed for pushing to GHCR
 
 jobs:
   delivery:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Application Version
         id: semver-app
         uses: paulhatch/semantic-version@v5.4.0
         with:
           bump_each_commit: true
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}          # the user who triggered the workflow
+          password: ${{ secrets.GITHUB_TOKEN }}  # automatically provided token
+
+      - name: Build and Push Docker image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository }}:staging \
+            -t ghcr.io/${{ github.repository }}:${{ steps.semver-app.outputs.version }} \
+            -f DevOpsWebApplication/Dockerfile .
+          docker push ghcr.io/${{ github.repository }} --all-tags
+
+      - name: Create release notes
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.semver-app.outputs.version }}
+          generateReleaseNotes: true
+          body: |
+            This release includes the following container image:
+            https://ghcr.io/${{ github.repository }}:${{ steps.semver-app.outputs.version }}
