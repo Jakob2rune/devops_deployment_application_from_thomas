@@ -22,7 +22,7 @@ jobs:
         with:
           bump_each_commit: true
 
-      # NEW: Convert repository name to lowercase (required for Docker)
+      # NEW: Convert repository name to lowercase (required for Docker) 
       - name: Convert repository name to lowercase
         id: repo_lower
         run: |
