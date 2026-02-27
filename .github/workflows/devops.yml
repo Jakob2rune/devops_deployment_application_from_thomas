@@ -3,7 +3,7 @@ name: DevOps Pipeline
 on:
   push:
     branches:
-      - main
+      - master
 
 # Grant the GITHUB_TOKEN necessary permissions
 permissions:
