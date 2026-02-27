@@ -3,12 +3,12 @@ name: DevOps Pipeline
 on:
   push:
     branches:
-      - master
+      - main
 
-# Set permissions for the GITHUB_TOKEN to allow pushing to GHCR and creating releases
+# Grant the GITHUB_TOKEN necessary permissions
 permissions:
-  contents: write      # needed for creating releases
-  packages: write      # needed for pushing to GHCR
+  contents: write      # for creating releases
+  packages: write      # for pushing to GHCR
 
 jobs:
   delivery:
@@ -27,8 +27,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}          # the user who triggered the workflow
-          password: ${{ secrets.GITHUB_TOKEN }}  # automatically provided token
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Docker image
         run: |
@@ -46,3 +46,25 @@ jobs:
           body: |
             This release includes the following container image:
             https://ghcr.io/${{ github.repository }}:${{ steps.semver-app.outputs.version }}
+
+    
+      #Deploy to staging server using Docker Compose =====
+      - name: Deliver Docker Compose file to staging
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.STAGING_SERVER_IP }}
+          username: ${{ vars.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          source: "compose.yaml"
+          target: dowa/
+
+      - name: Run Docker Compose on staging server
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ vars.STAGING_SERVER_IP }}
+          username: ${{ vars.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          script: |
+            cd dowa
+            docker compose pull
+            docker compose up -d
