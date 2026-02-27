@@ -1,0 +1,5 @@
+﻿services:
+  devopswebapplication:
+    image: "ghcr.io/jakob2rune/devops_deployment_application_from_thomas:staging"
+    ports:
+        - "8000:8080"
