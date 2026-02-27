@@ -61,5 +61,5 @@ jobs:
           key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
           script: |
             cd dowa
-            docker compose pull
-            docker compose up -d
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker compose pull
+            echo '${{ secrets.SUDO_PASSWORD }}' | sudo -S docker compose up -d
